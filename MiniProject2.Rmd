@@ -1,0 +1,109 @@
+---
+title: "Mini-Project 2"
+author: "Eunice Park"
+date: "3/20/2017"
+output: html_document
+---
+
+#Loading the Data
+We loaded the data
+```{R load, include=FALSE}
+load("house_elections.rda")
+load("candidates.rda")
+load("committees.rda")
+load("contributions.rda")
+```
+
+#Loading the Packages
+We loaded the packages dplyr, tidyr, and ggplot
+```{R setup, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+#Create the Combined Dataset
+We combined the dataset between candidates and contributions by candidate id
+```{R total, include=FALSE}
+total <- candidates %>%
+  right_join(contributions, by = "cand_id")
+```
+
+#Data Wrangling for Region
+We created a separate dataframe including the state abbreviations and their regional group accordingly. We then merged this dataframe with the total combined dataframe from earlier
+
+```{R regional_data, echo=FALSE}
+#make lists for each state and it's regional group
+northeast <- c("CT", "MA", "NH", "RI","VT", "NJ","NY", "PA")
+northeast_title <- c("Northeast", "Northeast", "Northeast", "Northeast", "Northeast", "Northeast", "Northeast", "Northeast")
+
+midwest <- c("IL", "IN","MI", "OH", "WI", "IA","KS", "MN", "MO", "NE", "ND", "SD")
+midwest_title <- c("Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest", "Midwest")
+
+south <- c("DE","FL", "GA", "MD", "NC", "SC", "VA", "WV")
+south_title <- c("South", "South", "South", "South", "South", "South", "South", "South")
+
+west <- c("AZ", "CO", "ID", "MT", "NV", "NM", "UT", "WY","AK", "CA", "HI", "OR", "WA")
+west_title <- c("West", "West", "West", "West", "West", "West", "West", "West", "West", "West", "West", "West", "West")
+
+#create a dataframe of the states and their regional groups
+regional_grouping <- data.frame(state=c(northeast, midwest, south, west), region=c(northeast_title, midwest_title, south_title, west_title))
+
+#merge the regional dataframe with our total dataframe
+total <- merge(total,regional_grouping, by = 'state')
+
+```
+
+#Average per Year and by Region
+We then created a function to compute the average campaign transaction amount per year. Then, we created a short list of the regions to pass onto the function. We binded the rows into one dataframe and omitted any NA observations.
+
+```{R avg_region, echo=FALSE}
+
+#function to compute the average transaction amount per year
+avg_region <- function(region_arg) {
+total %>%
+  filter(region==region_arg) %>%
+  group_by(cand_election_yr) %>%
+  summarize(Average = mean(transaction_amt)) %>%
+  rename(Year=cand_election_yr) %>%
+  mutate(Region = region_arg)
+}
+
+#list of region titles
+region_list <- c("Northeast", "Midwest", "South", "West")
+
+#apply function to the region list and bind the rows into one dataframe
+result <- lapply(region_list, FUN=avg_region) %>%
+  bind_rows() %>%
+  na.omit(result)
+
+```
+
+#Plot the Graph
+We plotted a line graph of the average transaction amount made each election year, separated by geographic region.
+```{R plot, echo= FALSE}
+options(warn=-1)
+
+#ggplot by region
+p1 <- ggplot(result, aes(x = Year, y = Average))
+
+#line graph
+p1 + geom_line(aes(color = Region))
+
+#smooth graph
+#p1 + geom_smooth(aes(color = Region))
+
+#p1 + geom_jitter(aes(color = Region))
+
+```
+
+
+
+
+
+
+
+
+
+
